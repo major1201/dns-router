@@ -1,0 +1,35 @@
+---
+local_dns_servers:
+  - protocol: udp
+    listen_addr: 127.0.0.3
+    rule: my_rule
+
+rules:
+  my_rule:
+    default_dns_server: my_default_server
+    host_table: table1
+    russia_server: list1
+    asia_server:
+      - douban.com
+      - douban.fm
+      - doubanio.com
+
+pass_through_dns_servers:
+  my_default_server:
+    addr: 8.8.8.8
+  russia_server:
+    addr: 77.88.8.88
+  asia_server:
+    addr: 202.96.209.5
+
+host_tables:
+  table1:
+    www.example.com: 127.0.0.1
+    www.example.net: 192.168.1.1
+
+domain_lists:
+  list1:
+    - nic.ru
+    - cctld.ru
+    - imgsrc.ru
+...
