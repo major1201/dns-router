@@ -40,18 +40,17 @@ class RouterResolver(BaseResolver):
             str(qname), "/", QTYPE[request.q.qtype], "-->"
         ]
         try:
-            if request.q.qtype == QTYPE.A:
-
+            if qname.label in self.rule.host_table and request.q.qtype == QTYPE.A:
                 # find host table
-                if qname.label in self.rule.host_table:
-                    reply = request.reply()
-                    host_addr = self.rule.host_table[qname.label]
-                    reply.add_answer(RR(qname, QTYPE.A, rdata=A(host_addr), ttl=60))
+                reply = request.reply()
+                host_addr = self.rule.host_table[qname.label]
+                reply.add_answer(RR(qname, QTYPE.A, rdata=A(host_addr), ttl=60))
 
-                    log_arr.append("HOST:")
-                    log_arr.append(host_addr)
-                    log(" ".join(log_arr))
-                    return reply
+                log_arr.append("HOST:")
+                log_arr.append(host_addr)
+                log(" ".join(log_arr))
+                return reply
+            else:
                 # route dns servers by domain
                 for domain in self.rule.domain_map:
                     if qname.label[-len(domain.label):] == domain.label:  # match suffix or not
@@ -63,18 +62,17 @@ class RouterResolver(BaseResolver):
 
                         proxy_r = request.send(ptserver.addr, ptserver.port, tcp=ptserver.protocol == "tcp", timeout=ptserver.timeout)
                         reply = DNSRecord.parse(proxy_r)
-
                         return reply
 
-            # pass through default dns server
-            ddserver = self.rule.default_dns_server
+                # pass through default dns server
+                ddserver = self.rule.default_dns_server
 
-            log_arr.append("PASSED DEFAULT:")
-            log_arr.append(ddserver.protocol + "://" + ddserver.addr + ":" + str(ddserver.port))
-            log(" ".join(log_arr))
+                log_arr.append("PASSED DEFAULT:")
+                log_arr.append(ddserver.protocol + "://" + ddserver.addr + ":" + str(ddserver.port))
+                log(" ".join(log_arr))
 
-            proxy_r = request.send(ddserver.addr, ddserver.port, tcp=ddserver.protocol == "tcp", timeout=ddserver.timeout)
-            reply = DNSRecord.parse(proxy_r)
+                proxy_r = request.send(ddserver.addr, ddserver.port, tcp=ddserver.protocol == "tcp", timeout=ddserver.timeout)
+                reply = DNSRecord.parse(proxy_r)
         except socket.timeout:
             log_arr.append("-->")
             log_arr.append("TIMEOUT")
