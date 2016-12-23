@@ -247,7 +247,10 @@ class RouterResolver(BaseResolver):
                     if cache_enable:
                         cache_value = cache_client.get(cache_key)
                         if cache_value:
-                            reply = DNSRecord.parse(base64.decodestring(cache_value))
+                            cache_rr = DNSRecord.parse(base64.decodestring(cache_value)).rr
+                            reply = request.reply()
+                            for _rr in cache_rr:
+                                reply.add_answer(_rr)
                             log_arr.append('CACHE')
                             break
                     try:
