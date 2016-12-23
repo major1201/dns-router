@@ -1,35 +1,104 @@
 ---
-local_dns_servers:
-  - protocol: udp
-    listen_addr: 127.0.0.3
-    rule: my_rule
+system:
+  project_name: dns-router
+  log_stdout: true # output the log in stdout or not
+  log_file: false # output the log to a file or not
+  log_file_path: # specify the log file
+  log_level: 10 # specify the logging level
 
-rules:
-  my_rule:
-    default_dns_server: my_default_server
-    host_table: table1
-    russia_server: list1
-    asia_server:
-      - douban.com
-      - douban.fm
-      - doubanio.com
+cache:
+  enable: false # enable dns cache or not, this would cache the 'FORWARD'ed responses until ttl
+  memcached_addr: '127.0.0.1:11211' # dns-router uses memcached to cache responses
 
-pass_through_dns_servers:
-  my_default_server:
-    addr: 8.8.8.8
-  russia_server:
-    addr: 77.88.8.88
-  asia_server:
-    addr: 202.96.209.5
-
-host_tables:
-  table1:
-    www.example.com: 127.0.0.1
-    www.example.net: 192.168.1.1
-
-domain_lists:
-  list1:
-    - nic.ru
-    - cctld.ru
-    - imgsrc.ru
+dns_servers:
+  - url: udp://127.0.0.5 # dns server url, format: scheme://listen_address:port
+    rules:
+      # translate a PTR dns request with a complete match with "1.0.0.172.in-addr.arpa." to "dns.local"
+      - domain: 1.0.0.172.in-addr.arpa.
+        domain-type: FQDN
+        type: PTR
+        value: dns.local
+      # domain-type: "FQDN" means the FQDN of the request domain should be equal to the domain field(the "." at the last can be omitted)
+      - domain: test1.example.com
+        domain-type: FQDN
+        type: A
+        value: 1.1.1.1
+      # domain-type: "PREFIX" means the request domain with a prefix of "test2.example.com" matches
+      - domain: test2.example.com
+        domain-type: PREFIX
+        type: A
+        value: 2.2.2.2
+      # domain-type: "SUFFIX" means the request domain with a suffix of "test3.example.com" matches
+      - domain: test3.example.com
+        domain-type: SUFFIX
+        type: A
+        value: 3.3.3.3
+      # domain-type: "KEYWORD" means any part of the request domain matches "google" is ok
+      - domain: google
+        domain-type: KEYWORD
+        type: A
+        value: 4.4.4.4
+      # domain-type: "WILDCARD" matches the wildcard of the domain
+      - domain: '*.ab?news.cn'
+        domain-type: WILDCARD
+        type: A
+        value: 5.5.5.5
+      # domain-type: "REGEX" matches the regular expression of the domain
+      - domain: '^www.facebook.co[nm]$'
+        domain-type: REGEX
+        type: A
+        value: 6.6.6.6
+      # type: "REJECT" means the server would return a "no such domain" response
+      - domain: test4.example.com
+        domain-type: FQDN
+        type: REJECT
+      # type: "A" means the server would return A record
+      # dns-router now supports "A", "CNAME", "MX", "NS", "PTR", "AAAA", "SRV", "SOA" record, each record can be an array
+      - domain: test5.example.com
+        domain-type: FQDN
+        type: CNAME
+        value: test1.example.com
+      - domain: test6.example.com
+        domain-type: FQDN
+        type: CNAME
+        value:
+          - test2.example.com
+          - test3.example.com
+      - domain: test7.example.com
+        domain-type: FQDN
+        type: MX
+        value:
+          - test4.example.com
+          - test5.example.com
+      - domain: test8.example.com
+        domain-type: FQDN
+        type: NS
+        value:
+          - test1.example.com
+          - test2.example.com
+      - domain: test1.example.com
+        domain-type: FQDN
+        type: AAAA
+        value: fe80::1234
+      - domain: test9.example.com
+        domain-type: FQDN
+        type: SRV
+        value:
+          - '3 0 2176 example-server.1.google.com'
+          - '3 0 2176 example-server.2.google.com'
+      - domain: test10.example.com
+        domain-type: FQDN
+        type: SOA
+        value:
+          - 'mirrors1.xinmin.cn. office1.xinmin.cn. 2016011701 1800 900 604800 86400'
+          - 'mirrors2.xinmin.cn. office2.xinmin.cn. 2016011701 1800 900 604800 86400'
+      - domain: test11.example.com
+        domain-type: FQDN
+        type: PTR
+        value: testhaha.com
+      # type: "FORWARD" means the server would forward the request to a next dns server
+      - domain: '*'
+        domain-type: WILDCARD
+        type: FORWARD
+        value: udp://8.8.8.8
 ...

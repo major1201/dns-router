@@ -1,2 +1,5 @@
 dnslib
 pyyaml
+six
+future
+python-memcached

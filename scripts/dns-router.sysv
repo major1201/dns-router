@@ -1,0 +1,103 @@
+#!/bin/sh
+#
+# dns-router - A simple DNS server(with cache support) which can shunt your DNS requests towards different DNS servers.
+#
+# chkconfig:   35 85 15
+# description:  dns-router is a simple DNS server(with cache support) which can shunt your DNS requests towards different DNS servers.
+# processname: dns-router
+# config:      /var/program/dns-router/dns-router.yml
+# pidfile:     /var/program/dns-router/dns-router.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+PROJ="dns-router"
+PROG_DIR="/var/program/${PROJ}"
+PID_FILE="${PROG_DIR}/${PROJ}.pid"
+CONF_FILE="${PROG_DIR}/${PROJ}.yml"
+
+start() {
+    daemon nohup /usr/bin/env python ${PROG_DIR}/${PROJ}.py -c ${CONF_FILE} &>>/dev/null &
+}
+
+stop() {
+    if [ ! -f ${PID_FILE} ]; then
+        echo ${PROJ} stop failed, no pid file
+        exit 1
+    fi
+    pid=`cat ${PID_FILE}`
+    echo Stopping ${PROJ} [${pid}]...
+    if `kill -15 ${pid}`; then
+        echo ${PROJ} stopped!
+        rm -f ${PID_FILE}
+    else
+        echo ${PROJ} stop failed!
+    fi
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+reload() {
+    if [ ! -f ${PID_FILE} ]; then
+        echo ${PROJ} stop failed, no pid file
+        exit 1
+    fi
+    pid=`cat ${PID_FILE}`
+    echo -n $"Reloading $PROJ: "
+    kill -10 ${pid}
+    RETVAL=$?
+    echo
+}
+
+force_reload() {
+    restart
+}
+
+configtest() {
+    /usr/bin/env python ${PROG_DIR}/${PROJ}.py -c ${CONF_FILE} -t
+}
+
+rh_status() {
+    status ${PROJ}
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart|configtest)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|configtest}"
+        exit 2
+esac
