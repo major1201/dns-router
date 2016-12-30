@@ -1,10 +1,21 @@
 ---
 system:
   project_name: dns-router
-  log_stdout: true # output the log in stdout or not
-  log_file: false # output the log to a file or not
-  log_file_path: # specify the log file
-  log_level: 10 # specify the logging level
+
+logging:
+  stdout:
+    enable: true        # log to stdout or not
+    format:             # log format, default: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
+    level:              # log level, default: 0
+  file:
+    enable: false       # log to file or not
+    format:             # log format, default: '[%(asctime)s %(levelname)s %(name)s] %(message)s'
+    level:              # log level, default: 0
+    path:               # log file path, default: ${project_name}.yml
+    rotating:
+      enable: true      # enable rotating or not
+      when: MIDNIGHT    # rotating condition
+      backup_count: 60  # backup count
 
 cache:
   enable: false # enable dns cache or not, this would cache the 'FORWARD'ed responses until ttl

@@ -113,3 +113,9 @@ def get_all_between(ori, start, end):
                 continue
         break
     return ret
+
+
+def get_non_empty_str(_dict, key, dv=None):
+    assert isinstance(_dict, dict)
+    val = _dict.get(key)
+    return dv if is_empty(val) else val
