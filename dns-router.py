@@ -20,6 +20,32 @@ PROJ = 'dns-router'
 LOGGER_NAME = 'DNS'
 
 
+class DnsRouter(object):
+    def __init__(self, pid_file):
+        self.pid_file = pid_file
+
+    def __enter__(self):
+        self.prepare_pidfile()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.term_pidfile()
+
+    def terminate(self):
+        self.term_pidfile()
+        sys.exit()
+
+    def prepare_pidfile(self):
+        with open(self.pid_file, 'w') as pid:
+            pid.write(str(os.getpid()))
+
+    def term_pidfile(self):
+        try:
+            os.remove(self.pid_file)
+        except:
+            pass
+
+
 class ArgumentParser(object):
     args = None
 
@@ -341,16 +367,11 @@ class DNSServerLoader(object):
                     break
                 elif cls.flag == 3:  # reload
                     cls.flag = 0
-                    try:
-                        # reload settings
-                        with open(ArgumentParser.args['config']) as _f:
-                            setting.load(_f)
-                        ConfigParser(setting.conf).check()
-                        cls._stop_servers()
-                        cls._reload()
-                    except:
-                        logger.error_traceback(LOGGER_NAME)
-                        logger.error('Config file(' + ArgumentParser.args['config'] + ') checked failed, not reloaded.', LOGGER_NAME)
+                    # reload settings
+                    with open(ArgumentParser.args['config']) as _f:
+                        setting.load(_f)
+                    cls._stop_servers()
+                    cls._reload()
                 sys.stderr.flush()
                 sys.stdout.flush()
         except KeyboardInterrupt:
@@ -442,9 +463,7 @@ class DNSServerLoader(object):
         return up.scheme, up.hostname, port
 
 
-def start():
-    import os.path
-
+def main():
     # parse argument
     ArgumentParser.parse()
 
@@ -457,47 +476,26 @@ def start():
     from utils import logger
     logger.initialize()
 
-    # pid file
-    if not ArgumentParser.args['test']:
-        with open(os.path.join(os.path.dirname(__file__), setting.conf.get("system").get("project_name") + ".pid"), 'w') as pid:
-            pid.write(str(os.getpid()))
-
     # check config
-    ConfigParser(setting.conf).check()
     if ArgumentParser.args['test']:
+        ConfigParser(setting.conf).check()
         logger.info('Test successfully, ' + str(len(setting.conf.get('dns_servers', []))) + ' server(s) found.')
-        exit(0)
+        sys.exit()
 
-    # signal
-    from utils import system
-    system.register_sighandler(DNSServerLoader.stop, 2, 3, 15)
-    system.register_sighandler(DNSServerLoader.reload, 10)
-
-    # start server threads
-    DNSServerLoader.daemon()
-
-
-def main():
-    import errno
-    try:
-        start()
-    except IOError as e:
-        # skip Interrupted function call in Windows
-        if e.errno != errno.EINTR:
-            raise
-    except SystemExit:
-        pass
-    except:
-        import traceback
-        traceback.print_exc()
-        exit(-1)
-    finally:
-        # delete pid file
+    pid_file = os.path.join(os.path.dirname(__file__), setting.conf.get('system').get('project_name') + '.pid')
+    with DnsRouter(pid_file):
+        # signal
+        from utils import system
+        system.register_sighandler(DNSServerLoader.stop, 2, 3, 15)
+        system.register_sighandler(DNSServerLoader.reload, 10)
         try:
-            if not ArgumentParser.args['test']:
-                os.remove(os.path.join(os.path.dirname(__file__), PROJ + '.pid'))
-        except:
-            pass
+            # start server threads
+            DNSServerLoader.daemon()
+        except IOError as e:
+            import errno
+            # skip Interrupted function call in Windows
+            if e.errno != errno.EINTR:
+                raise
 
 
 if __name__ == "__main__":
