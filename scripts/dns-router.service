@@ -3,10 +3,10 @@ Description=Dns Router Server
 
 [Service]
 Type=simple
-PIDFile=/var/program/dns-router/dns-router.pid
-ExecStartPre=/usr/bin/python /var/program/dns-router/dns-router.py -t
+PIDFile=/usr/local/dns-router/dns-router.pid
+ExecStartPre=/usr/bin/python /usr/local/dns-router/dns-router.py -t
 ExecStartPost=/usr/bin/echo "Start dns-router [OK]."
-ExecStart=/usr/bin/python /var/program/dns-router/dns-router.py
+ExecStart=/usr/bin/python /usr/local/dns-router/dns-router.py
 ExecReload=/usr/bin/kill -s 10 $MAINPID
 ExecStop=/usr/bin/kill -s 15 $MAINPID
 ExecStopPost=/usr/bin/echo "Stop dns-router [OK]."
