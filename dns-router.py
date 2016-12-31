@@ -6,6 +6,7 @@ import os
 import time
 import re
 import six
+import base64
 from collections import Iterable
 from utils import strings, num
 from future.moves.urllib.parse import urlparse
@@ -219,6 +220,18 @@ class RouterResolver(BaseResolver):
         self.server = server
         self.rules = server['rules']
 
+    @staticmethod
+    def base64_encode(s):
+        return base64.b64encode(s) if six.PY2 else base64.b64encode(s if isinstance(s, bytes) else s.encode()).decode()
+
+    @staticmethod
+    def base64_decode(s):
+        return RouterResolver.base64_decode_getbytes(s).decode()
+
+    @staticmethod
+    def base64_decode_getbytes(s):
+        return base64.b64decode(s) if six.PY2 else base64.b64decode(s if isinstance(s, bytes) else s.encode())
+
     def resolve(self, request, handler):
         import socket
         from fnmatch import fnmatch
@@ -226,7 +239,7 @@ class RouterResolver(BaseResolver):
         from dnslib.server import DNSHandler
         from dnslib import RR
         from dnslib import QTYPE
-        from utils import logger, setting, encrypt
+        from utils import logger, setting
         import memcache
 
         # initialize memcached
@@ -272,7 +285,7 @@ class RouterResolver(BaseResolver):
                     if cache_enable:
                         cache_value = cache_client.get(cache_key)
                         if cache_value:
-                            cache_rr = DNSRecord.parse(encrypt.base64_decode(cache_value)).rr
+                            cache_rr = DNSRecord.parse(self.base64_decode_getbytes(cache_value)).rr
                             reply = request.reply()
                             for _rr in cache_rr:
                                 reply.add_answer(_rr)
@@ -287,7 +300,7 @@ class RouterResolver(BaseResolver):
                                 ttls = [rr_item.ttl for rr_item in reply.rr]
                                 ttl = 60 if len(ttls) == 0 else min(ttls)
                                 ttl = 1 if ttl == 0 else ttl
-                                cache_client.set(cache_key, encrypt.base64_encode(proxy_r), ttl)
+                                cache_client.set(cache_key, self.base64_encode(proxy_r), ttl)
                                 log_arr.append('ttl=' + str(ttl))
                             except:
                                 logger.error('CACHE ERROR', LOGGER_NAME)
@@ -485,8 +498,11 @@ def main():
     with DnsRouter(pid_file):
         # signal
         from utils import system
-        system.register_sighandler(DNSServerLoader.stop, 2, 3, 15)
-        system.register_sighandler(DNSServerLoader.reload, 10)
+        if os.name == 'posix':
+            system.register_sighandler(DNSServerLoader.stop, 2, 3, 15)
+            system.register_sighandler(DNSServerLoader.reload, 10)
+        else:
+            system.register_sighandler(DNSServerLoader.stop, 2, 15)
         try:
             # start server threads
             DNSServerLoader.daemon()
