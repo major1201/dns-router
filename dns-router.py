@@ -365,7 +365,7 @@ class DNSServerLoader(object):
 
     @classmethod
     def daemon(cls):
-        from utils import logger, setting
+        from utils import setting
 
         try:
             while 1:
