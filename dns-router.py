@@ -226,9 +226,8 @@ class RouterResolver(BaseResolver):
         from dnslib.server import DNSHandler
         from dnslib import RR
         from dnslib import QTYPE
-        from utils import logger, setting
+        from utils import logger, setting, encrypt
         import memcache
-        import base64
 
         # initialize memcached
         set_cache = setting.conf.get('cache', {})
@@ -273,7 +272,7 @@ class RouterResolver(BaseResolver):
                     if cache_enable:
                         cache_value = cache_client.get(cache_key)
                         if cache_value:
-                            cache_rr = DNSRecord.parse(base64.decodestring(cache_value)).rr
+                            cache_rr = DNSRecord.parse(encrypt.base64_decode(cache_value)).rr
                             reply = request.reply()
                             for _rr in cache_rr:
                                 reply.add_answer(_rr)
@@ -288,7 +287,7 @@ class RouterResolver(BaseResolver):
                                 ttls = [rr_item.ttl for rr_item in reply.rr]
                                 ttl = 60 if len(ttls) == 0 else min(ttls)
                                 ttl = 1 if ttl == 0 else ttl
-                                cache_client.set(cache_key, base64.encodestring(proxy_r), ttl)
+                                cache_client.set(cache_key, encrypt.base64_encode(proxy_r), ttl)
                                 log_arr.append('ttl=' + str(ttl))
                             except:
                                 logger.error('CACHE ERROR', LOGGER_NAME)
