@@ -1,0 +1,6 @@
+---
+- name: restart dns-router
+  service:
+    name: dns-router
+    state: restarted
+...

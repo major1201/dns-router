@@ -1,0 +1,35 @@
+---
+system:
+  project_name: dns-router
+
+logging:
+  stdout:
+    enable: false
+    format:
+    level:
+  file:
+    enable: true
+    format:
+    level:
+    path: /var/log/dns-router/dns-router.log
+    rotating:
+      enable: true
+      when: MIDNIGHT
+      backup_count: 60
+
+cache:
+  enable: false
+  memcached_addr: '127.0.0.1:11211'
+
+dns_servers:
+  - url: udp://0.0.0.0
+    rules:
+      - domain: 1.0.0.172.in-addr.arpa.
+        domain-type: FQDN
+        type: PTR
+        value: dns.local
+      - domain: '*'
+        domain-type: WILDCARD
+        type: FORWARD
+        value: udp://223.5.5.5
+...

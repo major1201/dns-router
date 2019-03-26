@@ -1,0 +1,18 @@
+---
+- name: apply dns-router config file
+  template:
+    src: "{{ dns_router_conf_file }}"
+    dest: "{{ dns_router_confdir }}/dns-router.yml"
+  notify:
+    - restart dns-router
+
+- name: install requirement
+  pip:
+    requirements: "{{ dns_router_confdir }}/requirements.txt"
+
+- name: enable and start dns-router
+  service:
+    name: dns-router
+    enabled: yes
+    state: started
+...

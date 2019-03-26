@@ -1,0 +1,4 @@
+---
+dns_router_confdir: /usr/local/dns-router/
+dns_router_conf_file: dns-router.yml
+...
